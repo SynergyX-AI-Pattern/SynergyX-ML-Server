@@ -10,6 +10,14 @@ class ErrorStatus(Enum):
     # 종목
     STOCK_NOT_FOUND = ("STOCK_NOT_FOUND", "해당 종목을 찾을 수 없습니다.", status.HTTP_404_NOT_FOUND)
 
+    # 백테스팅
+    BACKTEST_FAILED = ("BACKTEST_FAILED", "백테스트 실행 중 오류가 발생했습니다.", status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    # 패턴
+    PATTERN_NOT_FOUND = ("PATTERN_NOT_FOUND", "해당 패턴을 찾을 수 없습니다.", status.HTTP_404_NOT_FOUND)
+
+    COMMON_HTTP_ERROR = ("COMMON_HTTP_ERROR", "HTTP 오류가 발생했습니다.", status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     def __init__(self, code, message, http_status):
         self.code = code
         self.message = message
