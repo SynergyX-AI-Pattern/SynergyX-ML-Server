@@ -13,7 +13,11 @@ router = APIRouter()
     "",
     response_model=BaseResponse,
     summary="백테스트 실행",
-    description="stock_id, pattern_id, 날짜 범위를 기반으로 백테스트를 실행합니다.",
+    description=(
+        "stock_id, pattern_id, 날짜 범위를 기반으로 백테스트를 실행합니다.<br><br>"
+        "**지원 단위**: `MINUTE` / `HOUR` / `DAY`<br>"
+        "⚠️ 단위가 `MINUTE`일 경우 `15의 배수 값`만 허용됩니다."
+    ),
     tags=["Backtest"]
 )
 def run_backtest(

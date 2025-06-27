@@ -8,8 +8,8 @@ class BacktestRequest(BaseModel):
     model_config = {
         "json_schema_extra": {
             "example": {
-                "startDate": "2023-01-01",
-                "endDate": "2024-04-26"
+                "startDate": "2025-06-13",
+                "endDate": "2025-06-26"
             }
         }
     }
