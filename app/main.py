@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 import logging
-import sys
 import os
 from dotenv import load_dotenv
+from app.core.config import settings
 from app.core.logging_config import setup_logging
 from app.exceptions.base import APIException
 from app.exceptions.exception_handlers import api_exception_handler
@@ -13,11 +13,13 @@ from app.schemas.base_response import BaseResponse
 from app.exceptions.exception_handlers import validation_exception_handler, http_exception_handler
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from app.schedulers.batch_runner import start_batch_scheduler
 
 load_dotenv()
 setup_logging()
 
 logger = logging.getLogger(__name__)
+logger.info(f"현재 실행 환경: {settings.ENV.upper()} | 로깅 레벨: {logging.getLevelName(logger.getEffectiveLevel())}")
 
 # === FastAPI 애플리케이션 인스턴스 생성 ===
 app = FastAPI(
@@ -26,6 +28,15 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",  # Swagger 문서 경로
 )
+
+
+# === 스케줄러 등록 ===
+@app.on_event("startup")
+def on_startup():
+    if settings.ENV == "prod":
+        logger.info("prod - 배치 스케줄러 실행 시작")
+        start_batch_scheduler()
+
 
 # === 예외 핸들러 등록 ===
 # 커스텀 예외

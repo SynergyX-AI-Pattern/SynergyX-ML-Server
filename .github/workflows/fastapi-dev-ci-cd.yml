@@ -1,0 +1,74 @@
+name: FastAPI dev CI/CD
+
+on:
+  push:
+    branches: [ develop ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout FastAPI Repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Decode .env file
+        run: |
+          echo "$ENV_BASE64" | base64 -d > .env
+        env:
+          ENV_BASE64: ${{ secrets.FASTAPI_ENV_BASE64 }}
+
+      - name: Deploy to EC2
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          echo "$EC2_SSH_KEY" > private_key.pem
+          chmod 600 private_key.pem
+
+          # 프로젝트 코드 전송
+          rsync -avz -e "ssh -i private_key.pem -o StrictHostKeyChecking=no" \
+            --exclude venv --exclude .git ./ $EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/fastapi-app/
+
+          # .env 파일 전송
+          scp -i private_key.pem -o StrictHostKeyChecking=no .env $EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/fastapi-app/.env
+
+          # 서버 실행 스크립트
+          ssh -i private_key.pem -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_HOST "
+            set -e
+            cd /home/$EC2_USERNAME/fastapi-app
+
+            # Python 설치
+            if ! command -v python3 &> /dev/null; then
+              echo '[INFO] Python 설치 중...'
+              sudo apt-get update
+              sudo apt-get install -y python3 python3-venv python3-pip
+            fi
+
+            # 가상환경 + 패키지 설치
+            python3 -m venv venv
+            source venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt
+
+            # 서버 재시작
+            pkill -f 'uvicorn' || true
+            export PYTHONPATH=$(pwd)
+            nohup venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 > fastapi.log 2>&1 &
+          "
+
+          rm -f private_key.pem
+      
