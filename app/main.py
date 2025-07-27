@@ -1,4 +1,9 @@
 from fastapi import FastAPI
+import logging
+import sys
+import os
+from dotenv import load_dotenv
+from app.core.logging_config import setup_logging
 from app.exceptions.base import APIException
 from app.exceptions.exception_handlers import api_exception_handler
 from app.api.v1 import routers
@@ -8,6 +13,11 @@ from app.schemas.base_response import BaseResponse
 from app.exceptions.exception_handlers import validation_exception_handler, http_exception_handler
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+
+load_dotenv()
+setup_logging()
+
+logger = logging.getLogger(__name__)
 
 # === FastAPI 애플리케이션 인스턴스 생성 ===
 app = FastAPI(
@@ -21,8 +31,13 @@ app = FastAPI(
 # 커스텀 예외
 app.add_exception_handler(APIException, api_exception_handler)
 
+
 # Pydantic validation 예외 처리
-app.add_exception_handler(RequestValidationError, validation_exception_handler)
+@app.exception_handler(RequestValidationError)
+async def custom_validation_exception_handler(request, exc):
+    logger.debug(f"[ValidationError] {request.method} {request.url} | {exc.errors()}")  # 상세 로그
+    return await validation_exception_handler(request, exc)
+
 
 # 기본 HTTP 예외 처리 (404, 405 등)
 app.add_exception_handler(StarletteHTTPException, http_exception_handler)

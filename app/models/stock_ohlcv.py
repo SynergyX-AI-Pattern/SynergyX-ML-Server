@@ -1,6 +1,7 @@
 from sqlalchemy import Column, BigInteger, DateTime, Float, ForeignKey, UniqueConstraint
 from app.models.base_model import BaseTimeModel
 
+
 class StockOhlcv(BaseTimeModel):
     __tablename__ = "stock_ohlcv"
 
@@ -14,12 +15,12 @@ class StockOhlcv(BaseTimeModel):
 
     timestamp = Column(DateTime, nullable=False)
 
-    open      = Column(Float,    nullable=False)
+    open = Column(Float, nullable=False)
 
-    high      = Column(Float,    nullable=False)
+    high = Column(Float, nullable=False)
 
-    low       = Column(Float,    nullable=False)
+    low = Column(Float, nullable=False)
 
-    close     = Column(Float,    nullable=False)
+    close = Column(Float, nullable=False)
 
-    volume    = Column(BigInteger, nullable=False)
+    volume = Column(BigInteger, nullable=False)
