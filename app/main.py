@@ -1,4 +1,8 @@
 from fastapi import FastAPI
+import logging
+from dotenv import load_dotenv
+from app.core.config import settings
+from app.core.logging_config import setup_logging
 from app.exceptions.base import APIException
 from app.exceptions.exception_handlers import api_exception_handler
 from app.api.v1 import routers
@@ -8,6 +12,13 @@ from app.schemas.base_response import BaseResponse
 from app.exceptions.exception_handlers import validation_exception_handler, http_exception_handler
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from app.schedulers.predict_batch_runner import start_batch_scheduler
+
+load_dotenv()
+setup_logging()
+
+logger = logging.getLogger(__name__)
+logger.info(f"현재 실행 환경: {settings.ENV.upper()} | 로깅 레벨: {logging.getLevelName(logger.getEffectiveLevel())}")
 
 # === FastAPI 애플리케이션 인스턴스 생성 ===
 app = FastAPI(
@@ -17,12 +28,26 @@ app = FastAPI(
     docs_url="/docs",  # Swagger 문서 경로
 )
 
+
+# === 스케줄러 등록 ===
+@app.on_event("startup")
+def on_startup():
+    if settings.ENV == "prod":
+        logger.info("prod - 배치 스케줄러 실행 시작")
+        start_batch_scheduler()
+
+
 # === 예외 핸들러 등록 ===
 # 커스텀 예외
 app.add_exception_handler(APIException, api_exception_handler)
 
+
 # Pydantic validation 예외 처리
-app.add_exception_handler(RequestValidationError, validation_exception_handler)
+@app.exception_handler(RequestValidationError)
+async def custom_validation_exception_handler(request, exc):
+    logger.debug(f"[ValidationError] {request.method} {request.url} | {exc.errors()}")  # 상세 로그
+    return await validation_exception_handler(request, exc)
+
 
 # 기본 HTTP 예외 처리 (404, 405 등)
 app.add_exception_handler(StarletteHTTPException, http_exception_handler)

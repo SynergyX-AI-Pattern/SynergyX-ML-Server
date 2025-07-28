@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 
 
 class StockResponse(BaseModel):
@@ -17,3 +17,8 @@ class StockResponse(BaseModel):
             }
         }
     }
+
+
+class StockPredictionResponse(BaseModel):
+    symbol: str
+    predictions: List[float]
