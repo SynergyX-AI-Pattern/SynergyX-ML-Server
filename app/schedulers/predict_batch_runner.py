@@ -8,7 +8,7 @@ from app.utils.discord_notifier import notify_discord_async
 
 logger = logging.getLogger(__name__)
 
-@staticmethod
+
 def start_batch_scheduler():
     scheduler = BackgroundScheduler(timezone="Asia/Seoul")
 
@@ -19,11 +19,11 @@ def start_batch_scheduler():
 
         success_count = 0
         fail_count = 0
-        failed_symbols = []
+        failed_symbols = [] # 실패한 종목
 
         start_id = 1
         end_id = 100
-        max_workers = 8
+        max_workers = 6
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {
@@ -49,17 +49,17 @@ def start_batch_scheduler():
             f"[Scheduler] 배치 예측 완료 - 성공: {success_count}, 실패: {fail_count}, 소요 시간: {duration:.2f}s"
         )
 
-        # event loop 중첩 방지용: asyncio.run 대신 loop 직접 생성
+        # 스레드에서 비동기 함수 실행
         try:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(
-                notify_discord_async(success_count, fail_count, duration, failed_symbols)
-            )
+            import threading
+            def run_notification():
+                asyncio.run(notify_discord_async(success_count, fail_count, duration, failed_symbols))
+
+            notification_thread = threading.Thread(target=run_notification)
+            notification_thread.start()
+            notification_thread.join(timeout=30)  # 30초 타임아웃
         except Exception as e:
             logger.warning(f"디스코드 알림 실패: {e}")
-        finally:
-            loop.close()
 
     scheduler.start()
     logger.info("APScheduler 시작됨")

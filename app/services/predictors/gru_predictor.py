@@ -10,6 +10,7 @@ import logging
 import random
 import tensorflow as tf
 import os
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -33,26 +34,45 @@ def set_seed(seed: int = SEED):
 set_seed()  # 모듈 임포트 시 한 번 고정
 
 
-def fetch_close_data(symbol: str):
+def fetch_close_data(symbol: str, max_retries: int = 3, base_delay: float = 1.2):
     """
     yfinance로부터 과거 5년 종가 데이터 수집
+    - 요청 간 딜레이 삽입
+    - 429 Too Many Requests 대응 (지수 백오프 재시도)
     """
-    try:
-        df = yf.Ticker(f"{symbol}.KS").history(period="5y")[['Close']]
-        df.dropna(inplace=True)
-        if df.empty:
-            logger.warning(f"[{symbol}] 수집된 종가 데이터가 없습니다.")
-            return None
-        return df
-    except Exception as e:
-        logger.error(f"[{symbol}] 데이터 수집 실패: {e}")
-        return None
+    for attempt in range(max_retries):
+        try:
+            time.sleep(base_delay)  # 요청 간 기본 딜레이
+            df = yf.Ticker(f"{symbol}.KS").history(period="5y")[['Close']]
+            df.dropna(inplace=True)
+
+            if df.empty:
+                logger.warning(f"[{symbol}] 수집된 종가 데이터가 없습니다. (empty)")
+                return None
+
+            return df
+
+        except Exception as e:
+            # 429 혹은 유사한 속도 제한 오류일 경우
+            if "429" in str(e) or "rate limit" in str(e).lower():
+                backoff = base_delay * (2 ** attempt)  # 지수 백오프
+                logger.warning(f"[{symbol}] 429 감지 → {backoff:.1f}s 후 재시도 (attempt {attempt + 1})")
+                time.sleep(backoff)
+            else:
+                logger.error(f"[{symbol}] 데이터 수집 중 예외 발생: {e}")
+                break
+
+    logger.error(f"[{symbol}] 데이터 수집 실패 (재시도 초과)")
+    return None
 
 
 def preprocess(df) -> Tuple[np.ndarray, np.ndarray, MinMaxScaler]:
     """
     데이터 정규화 및 GRU 입력 형식으로 변환
     """
+    if len(df) < TIME_STEP + 1:
+        raise ValueError(f"데이터 포인트가 {TIME_STEP + 1}개 미만입니다. 최소 {TIME_STEP + 1}개 필요.")
+
     scaler = MinMaxScaler()
     scaled = scaler.fit_transform(df)
 

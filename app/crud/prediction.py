@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, UTC
 from sqlalchemy.orm import Session
 from app.models.prediction import Prediction
 import pandas as pd
@@ -12,6 +12,10 @@ def create_prediction_objects(stock_id: int, predicted: list[float]) -> list[Pre
     예측 결과 리스트를 Prediction 객체 리스트로 변환합니다.
     주말 제외: bdate_range()로 미래 15 영업일 기준
     """
+    if not predicted:
+        logger.warning(f"[{stock_id}] 빈 예측 리스트가 전달됨")
+        return []
+
     today = datetime.now(UTC).date()
 
     # 주말 제외된 15 영업일 생성
@@ -39,6 +43,10 @@ def save_predictions(db: Session, predictions: list[Prediction]) -> None:
     """
     Prediction 객체 리스트를 DB에 저장합니다.
     """
+    if not predictions:
+        logger.warning("저장할 예측 데이터가 없습니다.")
+        return
+
     db.bulk_save_objects(predictions)
     db.flush()
     db.commit()

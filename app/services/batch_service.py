@@ -4,10 +4,7 @@ from app.db.session import SessionLocal
 from app.models.stock import Stock
 import time
 from app.crud.prediction import create_prediction_objects, save_predictions
-from app.services.predictors.gru_predictor import (
-    fetch_close_data, preprocess, build_gru_model,
-    predict_future_prices, set_seed, TIME_STEP
-)
+from app.services.prediction_service import PredictionService
 import logging
 
 logger = logging.getLogger(__name__)
@@ -19,7 +16,7 @@ class BatchService:
     """
 
     @staticmethod
-    def run_batch_in_chunks(start_id=1, end_id=100, chunk_size=20, max_workers=2, cooldown_sec=3):
+    def run_batch_in_chunks(start_id=1, end_id=100, chunk_size=20, max_workers=6, cooldown_sec=3):
         """
         종목 예측을 chunk 단위로 분할하여 순차적으로 실행합니다.
 
@@ -58,20 +55,7 @@ class BatchService:
             symbol = stock.symbol
             logger.info(f"[{symbol}] 예측 시작")
 
-            set_seed()
-            df = fetch_close_data(symbol)
-            if df is None or df.empty:
-                return stock_id, False, "종가 데이터 없음"
-
-            X, y, scaler = preprocess(df)
-            X = X.reshape(-1, TIME_STEP, 1)
-            train_size = int(len(X) * 0.7)
-            X_train, y_train = X[:train_size], y[:train_size]
-
-            model = build_gru_model()
-            model.fit(X_train, y_train, epochs=150, batch_size=64, verbose=0)
-
-            predictions = predict_future_prices(model, X[-1], scaler, days=15)
+            predictions = PredictionService.predict_15_days(symbol)
 
             prediction_objs = create_prediction_objects(stock_id, predictions)
             save_predictions(db, prediction_objs)
@@ -81,6 +65,7 @@ class BatchService:
 
         except Exception as e:
             logger.exception(f"[{stock_id}] 예측 실패: {str(e)}")
+            db.rollback()
             return stock_id, False, f"예외 발생: {str(e)}"
 
         finally:

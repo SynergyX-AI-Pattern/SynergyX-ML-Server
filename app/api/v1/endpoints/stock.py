@@ -19,7 +19,7 @@ router = APIRouter()
     response_model=BaseResponse,
     summary="전체 종목 예측 및 DB 저장",
     description="""
-    스케줄러 테스트 용 -> 개별 실행 X\n
+    **스케줄러 테스트 용 -> 개별 실행 X**\n
     stock_id 범위(1~100)에 대해
     GRU 모델 학습 및 15일 주가 예측을 수행하고,  
     그 결과를 prediction 테이블에 저장합니다.
@@ -35,7 +35,8 @@ def batch_predict():
     - GRU 모델 기반으로 15일 예측 수행
     - prediction 테이블에 결과 저장
     """
-    BatchService.batch_predict_and_save(start_id=1, end_id=100, max_workers=2)
+    # 테스트 시 수정
+    BatchService.batch_predict_and_save(start_id=1, end_id=2, max_workers=6)
 
     return success_response(
         data=None,

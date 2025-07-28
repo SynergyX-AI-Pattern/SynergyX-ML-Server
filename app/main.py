@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 import logging
-import os
 from dotenv import load_dotenv
 from app.core.config import settings
 from app.core.logging_config import setup_logging
@@ -13,7 +12,7 @@ from app.schemas.base_response import BaseResponse
 from app.exceptions.exception_handlers import validation_exception_handler, http_exception_handler
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from app.schedulers.batch_runner import start_batch_scheduler
+from app.schedulers.predict_batch_runner import start_batch_scheduler
 
 load_dotenv()
 setup_logging()

@@ -44,6 +44,8 @@ class PredictionService:
 
     @staticmethod
     def predict_15_days(symbol: str, epochs: int = 150, batch_size: int = 64) -> list[float]:
+        if epochs <= 0 or batch_size <= 0:
+            raise ValueError("epochs와 batch_size는 양수여야 합니다")
         """
         한 종목의 15일 주가를 예측합니다.
         """
