@@ -15,7 +15,7 @@ def get_applies(db: Session):
     return (
         db.query(PatternApply)
         .filter(
-            PatternApply.is_alert_enabled == True,
+            PatternApply.is_alert_enabled,
             PatternApply.entry_at <= kst_now
         )
         .all()
