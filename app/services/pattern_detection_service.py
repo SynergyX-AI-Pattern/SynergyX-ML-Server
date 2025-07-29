@@ -97,7 +97,7 @@ class PatternDetectionService:
         except APIException as e:
             # 데이터 부족 시 감지 생략
             if e.status == ErrorStatus.NOT_ENOUGH_DATA:
-                raise APIException(ErrorStatus.NOT_ENOUGH_DATA)
+                raise APIException(ErrorStatus.NOT_ENOUGH_DATA) from e
             raise
 
         # 매칭된 구간 없으면 감지 안 함
@@ -122,7 +122,7 @@ class PatternDetectionService:
             is_sent = True
             sent_at = now
         except Exception as e:
-            logger.warning(f"[패턴 감지] 패턴 감지 성공: {e}")
+            logger.warning(f"[패턴 감지] 알림 전송 실패: {e}")
             is_sent = False
             sent_at = None
 
@@ -137,7 +137,6 @@ class PatternDetectionService:
             value=value,
             is_notification_sent=is_sent,
             notification_sent_at=sent_at,
-            updated_at=now
         )
         db.add(log)
 
