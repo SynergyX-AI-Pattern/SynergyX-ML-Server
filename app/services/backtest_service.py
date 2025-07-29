@@ -88,7 +88,13 @@ class BacktestService:
         start_datetime = datetime.combine(start_date, time.min)
         end_datetime = datetime.combine(end_date, time.max)
 
-        rows = get_stock_timeseries_by_unit(db, stock_id, start_datetime, end_datetime, unit)
+        rows = get_stock_timeseries_by_unit(
+            db=db,
+            stock_id=stock_id,
+            start_datetime=start_datetime,
+            end_datetime=end_datetime,
+            unit=unit)
+
         if not rows:
             raise APIException(ErrorStatus.STOCK_OHLCV_NOT_FOUND)
 
