@@ -20,6 +20,7 @@ class PatternApply(BaseTimeModel):
     entry_price = Column(Float, nullable=False)
     min_valid_return = Column(Float, nullable=False)
 
+    # 관계 설정
     pattern = relationship("Pattern", back_populates="pattern_applies")
     stock = relationship("Stock", back_populates="pattern_applies")
     detection_results = relationship("PatternDetectionLog", back_populates="pattern_apply")

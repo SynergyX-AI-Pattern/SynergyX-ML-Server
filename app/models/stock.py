@@ -13,3 +13,4 @@ class Stock(BaseTimeModel):
 
     # 관계 설정
     predictions = relationship("Prediction", back_populates="stock")
+    pattern_applies = relationship("PatternApply", back_populates="stock")
