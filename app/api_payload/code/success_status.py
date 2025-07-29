@@ -8,6 +8,7 @@ class SuccessStatus(Enum):
     PREDICTION_COMPLETE = ("PREDICTION_COMPLETE", "예측 완료", status.HTTP_200_OK)
     BACKTEST_EXECUTED = ("BACKTEST_EXECUTED", "백테스팅 실행 성공", status.HTTP_200_OK)
     STOCK_PREDICTED = ("STOCK200", "15일 예측 성공", status.HTTP_200_OK)
+    PATTERN_DETECTION_EXECUTED = ("PATTERN_DETECTION_EXECUTED", "패턴 감지 성공", status.HTTP_200_OK)
 
     def __init__(self, code, message, http_status):
         self.code = code
