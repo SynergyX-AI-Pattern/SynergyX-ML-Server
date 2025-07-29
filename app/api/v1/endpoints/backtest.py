@@ -14,7 +14,7 @@ router = APIRouter()
     response_model=BaseResponse,
     summary="백테스트 실행",
     description=(
-        "stock_id, pattern_id, 날짜 범위를 기반으로 백테스트를 실행합니다.<br><br>"
+        "stock_id, pattern_id, 날짜 범위를 기반으로 백테스트를 실행합니다."
     ),
     tags=["Backtest"]
 )
