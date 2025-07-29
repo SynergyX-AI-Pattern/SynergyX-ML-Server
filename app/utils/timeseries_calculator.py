@@ -25,6 +25,11 @@ def zscore_normalize(sequence: List[float]) -> Optional[List[float]]:
         - 정규화된 시계열 데이터
         if 분산이 거의 0이면 (모든 값이 거의 동일하면) None 반환
     """
+
+    # 빈 리스트가 입력될 경우 방지
+    if not sequence:
+        return None
+
     mean = sum(sequence) / len(sequence)  # 평균 계산
     var = sum((x - mean) ** 2 for x in sequence) / len(sequence)  # 분산 계산
 
