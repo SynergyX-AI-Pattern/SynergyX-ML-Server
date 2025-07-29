@@ -1,12 +1,7 @@
 from sqlalchemy import Column, BigInteger, Float, Boolean, DateTime, ForeignKey, Enum as SqlEnum
 from sqlalchemy.orm import relationship
 from app.models.base_model import BaseTimeModel
-import enum
-
-
-class PeriodUnit(enum.Enum):
-    HOUR = "HOUR"
-    DAY = "DAY"
+from app.models.pattern import PeriodUnit
 
 class PatternDetectionLog(BaseTimeModel):
     __tablename__ = "pattern_detection_log"
@@ -27,4 +22,4 @@ class PatternDetectionLog(BaseTimeModel):
     is_notification_sent = Column(Boolean, nullable=False, default=False)
     notification_sent_at = Column(DateTime, nullable=True)
 
-    pattern_apply = relationship("PatternApply", backref="detection_results")
+    pattern_apply = relationship("PatternApply", back_populates="detection_results")

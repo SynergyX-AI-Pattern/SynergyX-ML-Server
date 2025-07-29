@@ -5,11 +5,8 @@ import enum
 
 
 class PeriodUnit(enum.Enum):
-    SEC = "SEC"
-    MINUTE = "MINUTE"
     HOUR = "HOUR"
     DAY = "DAY"
-    MONTH = "MONTH"
 
 class Pattern(BaseTimeModel):
     __tablename__ = "pattern"
