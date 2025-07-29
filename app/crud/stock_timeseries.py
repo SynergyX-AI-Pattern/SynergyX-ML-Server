@@ -1,5 +1,8 @@
 from sqlalchemy.orm import Session
 from datetime import datetime
+
+from app.api_payload.code.error_status import ErrorStatus
+from app.exceptions.base import APIException
 from app.utils.unit_table_mapper import UNIT_TO_TABLE
 
 def get_stock_timeseries_by_unit(
@@ -13,6 +16,8 @@ def get_stock_timeseries_by_unit(
     단위에 따라 테이블에서 (timestamp, close) 조회
     """
     model = UNIT_TO_TABLE.get(unit.upper())
+    if model is None:
+        raise APIException(ErrorStatus.INVALID_UNIT)
 
     return (
         db.query(model.timestamp, model.close)
