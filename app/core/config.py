@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     ENV: Literal["local", "prod"] = "prod"  # 기본값 prod
     DISCORD_WEBHOOK_URL: str
+    SPRING_SERVER_BASE_URL: str
 
     class Config:
         env_file = ".env"
