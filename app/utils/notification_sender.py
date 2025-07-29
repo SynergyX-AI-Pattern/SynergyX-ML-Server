@@ -20,5 +20,5 @@ def send_notification_to_spring(title: str, message: str, notification_type: str
         response = requests.post(url, json=payload, timeout=5)
         response.raise_for_status()
         return response.json()
-    except requests.RequestException:
-        raise APIException(ErrorStatus.NOTIFICATION_SEND_FAILED)
+    except requests.RequestException as e:
+        raise APIException(ErrorStatus.NOTIFICATION_SEND_FAILED) from e
