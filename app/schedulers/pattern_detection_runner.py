@@ -20,6 +20,8 @@ def start_pattern_detection_scheduler():
 
     """
     월요일 ~ 금요일 (9:00 ~ 15:45) 15분 간격으로 패턴 감지를 수행합니다.
+    Returns:
+        BackgroundScheduler: 시작된 스케줄러 인스턴스
     """
 
     scheduler = BackgroundScheduler(timezone="Asia/Seoul")
@@ -38,3 +40,4 @@ def start_pattern_detection_scheduler():
 
     logging.info("[패턴 감지 스케줄러] 실시간 감지 시작")
     scheduler.start()
+    return scheduler
