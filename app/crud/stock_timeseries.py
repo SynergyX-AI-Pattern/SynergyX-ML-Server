@@ -1,22 +1,24 @@
 from sqlalchemy.orm import Session
-from datetime import datetime, date
-from app.models.stock_ohlcv import StockOhlcv
+from datetime import datetime
+from app.utils.unit_table_mapper import UNIT_TO_TABLE
 
-def get_stock_timeseries(
+def get_stock_timeseries_by_unit(
     db: Session,
     stock_id: int,
-    start_date: date,
-    end_date: date
+    start_datetime: datetime,
+    end_datetime: datetime,
+    unit: str
 ) -> list[tuple[datetime, float]]:
     """
-    주어진 구간의 timestamp와 종가 리스트를
-    오름차순으로 반환합니다.
+    단위에 따라 테이블에서 (timestamp, close) 조회
     """
+    model = UNIT_TO_TABLE.get(unit.upper())
+
     return (
-        db.query(StockOhlcv.timestamp, StockOhlcv.close)
-          .filter(StockOhlcv.stock_id == stock_id)
-          .filter(StockOhlcv.timestamp >= start_date)
-          .filter(StockOhlcv.timestamp <= end_date)
-          .order_by(StockOhlcv.timestamp.asc())
+        db.query(model.timestamp, model.close)
+          .filter(model.stock_id == stock_id)
+          .filter(model.timestamp >= start_datetime)
+          .filter(model.timestamp <= end_datetime)
+          .order_by(model.timestamp.asc())
           .all()
     )
