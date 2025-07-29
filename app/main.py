@@ -27,10 +27,17 @@ logger.info(f"현재 실행 환경: {settings.ENV.upper()} | 로깅 레벨: {log
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     if settings.ENV == "prod":
-        logger.info("prod - 배치 스케줄러 실행 시작")
-        start_batch_scheduler()
-        logger.info("prod - 패턴 감지 스케줄러 실행 시작")
-        start_pattern_detection_scheduler()
+        try:
+            logger.info("prod - 배치 스케줄러 실행 시작")
+            start_batch_scheduler()
+        except Exception as e:
+            logger.exception(f"배치 스케줄러 시작 실패: {e}")
+
+        try:
+            logger.info("prod - 패턴 감지 스케줄러 실행 시작")
+            start_pattern_detection_scheduler()
+        except Exception as e:
+            logger.exception(f"패턴 감지 스케줄러 시작 실패: {e}")
     yield
 
 
