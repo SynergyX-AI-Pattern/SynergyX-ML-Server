@@ -1,12 +1,11 @@
 from sqlalchemy import Column, BigInteger, DateTime, Float, ForeignKey, UniqueConstraint
 from app.models.base_model import BaseTimeModel
 
-
 class StockOhlcv1d(BaseTimeModel):
     __tablename__ = "stock_ohlcv_1d"
 
     __table_args__ = (
-        UniqueConstraint("stock_id", "timestamp", name="uq_stock_timestamp"),
+        UniqueConstraint("stock_id", "timestamp", name="uq_stock_ohlcv_1d_stock_timestamp"),
     )
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)

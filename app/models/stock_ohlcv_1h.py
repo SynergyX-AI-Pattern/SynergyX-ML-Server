@@ -5,7 +5,7 @@ class StockOhlcv1h(BaseTimeModel):
     __tablename__ = "stock_ohlcv_1h"
 
     __table_args__ = (
-        UniqueConstraint("stock_id", "timestamp", name="uq_stock_timestamp"),
+        UniqueConstraint("stock_id", "timestamp", name="uq_stock_ohlcv_1h_stock_timestamp"),
     )
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
