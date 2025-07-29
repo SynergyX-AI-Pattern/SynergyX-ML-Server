@@ -11,10 +11,12 @@ def validate_unit(unit: str, value: int):
     Raises:
         APIException: 유효하지 않은 단위 또는 값일 경우
     """
-    if value < 1:
-        raise APIException(ErrorStatus.INVALID_UNIT_VALUE)
+
     if unit not in {"HOUR", "DAY"}:
         raise APIException(ErrorStatus.INVALID_UNIT)
+
+    if value < 1:
+        raise APIException(ErrorStatus.INVALID_UNIT_VALUE)
 
 
 def zscore_normalize(sequence: List[float]) -> Optional[List[float]]:
@@ -78,12 +80,12 @@ def find_match_indices(
     last_end = -1
 
     # 슬라이딩 윈도우 방식으로 유사 구간 탐색
-    for i in range(len(closes) - pattern_length  + 1):
+    for i in range(len(closes) - pattern_length + 1):
         if i <= last_end:
             # 이전 매칭 구간과 겹치지 않도록 넘김
             continue
 
-        win = closes[i:i+pattern_length ]
+        win = closes[i:i+pattern_length]
         norm_win = zscore_normalize(win)
 
         # 분산 0일 경우
@@ -95,5 +97,5 @@ def find_match_indices(
         if dist_value <= tolerance:
             idxes.append(i)
             distances.append(dist_value)
-            last_end = i + pattern_length  - 1 # 매칭 구간 이후 다시 탐색
+            last_end = i + pattern_length - 1  # 매칭 구간 이후 다시 탐색
     return idxes, distances
