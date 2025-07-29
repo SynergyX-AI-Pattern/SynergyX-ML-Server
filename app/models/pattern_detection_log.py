@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, Float, Boolean, DateTime, ForeignKey, Enum as SqlEnum, func
+from sqlalchemy import Column, BigInteger, Float, Boolean, DateTime, ForeignKey, Enum as SqlEnum
 from sqlalchemy.orm import relationship
 from app.models.base_model import BaseTimeModel
 from app.models.pattern import PeriodUnit
