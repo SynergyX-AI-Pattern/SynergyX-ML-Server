@@ -23,7 +23,7 @@ def start_batch_scheduler():
 
         start_id = 1
         end_id = 100
-        max_workers = 6
+        max_workers = 3
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {
