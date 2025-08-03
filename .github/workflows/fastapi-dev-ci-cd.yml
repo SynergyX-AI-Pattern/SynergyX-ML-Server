@@ -52,7 +52,7 @@ jobs:
             cd /home/$EC2_USERNAME/fastapi-app
 
             # Python venv 설치
-            echo '[INFO] python3.10-venv 설치 보장 중...'
+            echo '[INFO] python3.10-venv 설치 중...'
             sudo apt update
             sudo apt install -y python3.10-venv python3-pip
 
@@ -65,7 +65,11 @@ jobs:
             # fast api 서버 재시작
             pkill -f 'uvicorn' || true
             export PYTHONPATH=$(pwd)
-            nohup venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 > fastapi.log 2>&1 &
+          
+            echo '[INFO] FastAPI 실행 중...'
+            nohup ./venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 > fastapi.log 2>&1 &
+            sleep 8
+            tail -n 50 fastapi.log
           "
 
           rm -f private_key.pem
