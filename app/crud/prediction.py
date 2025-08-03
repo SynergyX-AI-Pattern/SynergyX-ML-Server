@@ -1,4 +1,4 @@
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from app.models.prediction import Prediction
 import pandas as pd
@@ -16,7 +16,7 @@ def create_prediction_objects(stock_id: int, predicted: list[float]) -> list[Pre
         logger.warning(f"[{stock_id}] 빈 예측 리스트가 전달됨")
         return []
 
-    today = datetime.now(UTC).date()
+    today = datetime.now(timezone.utc).date()
 
     # 주말 제외된 15 영업일 생성
     biz_days = pd.bdate_range(start=today + pd.Timedelta(days=1), periods=len(predicted)).date
@@ -31,8 +31,8 @@ def create_prediction_objects(stock_id: int, predicted: list[float]) -> list[Pre
             predicted_low=price * 0.98,
             recommended_sell=price * 1.01,
             recommended_buy=price * 0.99,
-            created_at=datetime.now(UTC),
-            updated_at=datetime.now(UTC)
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
         )
         predictions.append(prediction)
 
