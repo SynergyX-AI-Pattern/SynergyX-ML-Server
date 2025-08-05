@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 def start_batch_scheduler():
     scheduler = BackgroundScheduler(timezone="Asia/Seoul")
 
-    @scheduler.scheduled_job('cron', hour=18, minute=5)
+    @scheduler.scheduled_job('cron', hour=19, minute=15)
     def run_batch():
         logger.info("[Scheduler] 18:05 배치 예측 시작")
         start = time.time()
