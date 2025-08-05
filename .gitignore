@@ -361,7 +361,7 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
-# API Keys
-keys/
+# Google Vision API 키
+vision-key.json
 
 # End of https://www.toptal.com/developers/gitignore/api/pycharm,python,venv,windows,macos,virtualenv

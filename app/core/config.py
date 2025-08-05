@@ -1,6 +1,6 @@
 from pydantic_settings import BaseSettings
 from typing import Literal
-from pydantic import HttpUrl, SecretStr
+from pydantic import HttpUrl
 
 class Settings(BaseSettings):
     DATABASE_URL: str
@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     DISCORD_WEBHOOK_URL: str
     SPRING_SERVER_BASE_URL: HttpUrl
     GOOGLE_APPLICATION_CREDENTIALS: str
-    OPENAI_API_KEY: SecretStr
+    OPENAI_API_KEY : str
 
     class Config:
         env_file = ".env"
