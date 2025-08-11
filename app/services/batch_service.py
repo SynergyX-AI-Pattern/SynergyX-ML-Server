@@ -29,16 +29,37 @@ class BatchService:
         """
         logger.info(f"분할 배치 시작: {start_id} ~ {end_id} (chunk: {chunk_size})")
 
+        success_count = 0
+        fail_count = 0
+        failed_symbols = []
+
         for start in range(start_id, end_id + 1, chunk_size):
             end = min(start + chunk_size - 1, end_id)
 
             logger.info(f"예측 구간: {start} ~ {end}")
-            BatchService.batch_predict_and_save(start_id=start, end_id=end, max_workers=max_workers)
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = {
+                    executor.submit(BatchService.process_single_stock, stock_id): stock_id
+                    for stock_id in range(start, end + 1)
+                }
+                for future in as_completed(futures):
+                    stock_id = futures[future]
+                    try:
+                        stock_id, success, symbol_or_msg = future.result()
+                        if success:
+                            success_count += 1
+                        else:
+                            fail_count += 1
+                            failed_symbols.append(symbol_or_msg)
+                    except Exception as e:
+                        logger.exception(f"[{stock_id}] 처리 중 예외 발생: {str(e)}")
+                        fail_count += 1
 
             if cooldown_sec > 0:
                 time.sleep(cooldown_sec)
 
         logger.info("전체 분할 배치 완료")
+        return success_count, fail_count, failed_symbols
 
     @staticmethod
     def process_single_stock(stock_id: int) -> tuple[int, bool, str]:
