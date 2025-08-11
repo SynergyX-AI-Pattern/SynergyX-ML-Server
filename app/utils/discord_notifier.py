@@ -5,8 +5,6 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
-
 
 def format_duration(seconds: float) -> str:
     seconds = int(seconds)
@@ -29,11 +27,15 @@ async def notify_discord_async(
         success_count: int,
         fail_count: int,
         duration: float,
-        failed_symbols: list[str] = None
+        failed_symbols: list[str] = None,
+        mention_role_id: str = None
 ) -> None:
     """
     배치 예측 결과를 디스코드로 전송하는 비동기 함수
     """
+    import os
+    DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
+
     if not DISCORD_WEBHOOK_URL:
         logger.warning("DISCORD_WEBHOOK_URL이 설정되지 않았습니다.")
         return
@@ -42,8 +44,11 @@ async def notify_discord_async(
     formatted_duration = format_duration(duration)
     today_str = datetime.now().strftime('%Y-%m-%d')
 
+    # 역할 멘션 문자열 생성
+    mention_str = f"<@&{mention_role_id}> " if mention_role_id else ""
+
     content = f"""
-📊 배치 예측 완료 ({today_str})
+{mention_str}📊 배치 예측 완료 ({today_str})
 - 종목 수: {total}
 - 성공: {success_count}
 - 실패: {fail_count}

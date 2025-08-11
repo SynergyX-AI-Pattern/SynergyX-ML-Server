@@ -43,10 +43,10 @@ jobs:
           rsync -avz -e "ssh -i private_key.pem -o StrictHostKeyChecking=no" \
             --exclude venv --exclude .git ./ $EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/fastapi-app/
 
-          # .env 파일 전송
+          # .env 전송
           scp -i private_key.pem -o StrictHostKeyChecking=no .env $EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/fastapi-app/.env
 
-          # 서버 실행 스크립트
+          # 서버 설정 및 재시작
           ssh -i private_key.pem -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_HOST "
             set -e
             cd /home/$EC2_USERNAME/fastapi-app
@@ -62,14 +62,11 @@ jobs:
             pip install --upgrade pip
             pip install -r requirements.txt
 
-            # fast api 서버 재시작
-            pkill -f 'uvicorn' || true
-            export PYTHONPATH=$(pwd)
-          
-            echo '[INFO] FastAPI 실행 중...'
-            nohup ./venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 > fastapi.log 2>&1 &
-            sleep 8
-            tail -n 50 fastapi.log
+            # systemd 서비스 재시작
+            echo '[INFO] FastAPI 서비스 재시작...'
+            sudo systemctl daemon-reload
+            sudo systemctl restart fastapi
+            sudo systemctl status fastapi --no-pager -l
           "
 
           rm -f private_key.pem
