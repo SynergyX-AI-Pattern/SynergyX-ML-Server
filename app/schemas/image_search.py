@@ -8,7 +8,7 @@ class ImageSearchResponse(BaseModel):
         "from_attributes": True,
         "json_schema_extra": {
             "example": {
-                "id": "1"
+                "id": 1
             }
         }
     }
