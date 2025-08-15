@@ -1,12 +1,14 @@
 from pydantic_settings import BaseSettings
 from typing import Literal
-from pydantic import HttpUrl
+from pydantic import HttpUrl, SecretStr
 
 class Settings(BaseSettings):
     DATABASE_URL: str
     ENV: Literal["local", "prod"] = "prod"  # 기본값 prod
     DISCORD_WEBHOOK_URL: str
     SPRING_SERVER_BASE_URL: HttpUrl
+    GOOGLE_APPLICATION_CREDENTIALS: str
+    OPENAI_API_KEY: SecretStr
 
     class Config:
         env_file = ".env"
