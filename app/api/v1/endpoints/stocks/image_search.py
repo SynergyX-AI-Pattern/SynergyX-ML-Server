@@ -1,8 +1,10 @@
 from fastapi import APIRouter, UploadFile, File, Depends
+from app.api_payload.code.error_status import ErrorStatus
 from app.db.session import get_db
 from sqlalchemy.orm import Session
 from app.api_payload.code.success_status import SuccessStatus
 from app.core.response import success_response
+from app.exceptions.base import APIException
 from app.schemas.base_response import BaseResponse
 from app.schemas.image_search import ImageSearchResponse
 from app.services.image_search_service import ImageSearchService
@@ -24,6 +26,11 @@ async def search_stock_by_image(
         db: Session = Depends(get_db)
 ):
     contents = await image.read()
+    MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
+
+    # 파일 크기 제한(5MB)
+    if len(contents) > MAX_IMAGE_SIZE:
+        raise APIException(ErrorStatus.FILE_TOO_LARGE)
 
     result: ImageSearchResponse = ImageSearchService.search_stock_by_image(contents, db)
 
