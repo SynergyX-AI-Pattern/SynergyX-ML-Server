@@ -2,7 +2,7 @@ import logging
 from sqlalchemy.orm import Session
 from app.crud.stock import get_stock_by_name
 from app.exceptions.base import APIException
-from app.api_payload.code.status_code import ErrorStatus
+from app.api_payload.code.error_status import ErrorStatus
 from app.schemas.image_search import ImageSearchResponse
 from app.services.external.gpt_service import GPTService
 from app.services.external.vision_service import VisionService
@@ -23,10 +23,7 @@ class ImageSearchService:
         keyword_list = VisionService.normalize_keywords(keywords_dict)
 
         # 종목 추론
-        try:
-            brand_name = GPTService.infer_brand_name_from_keywords(keyword_list)
-        except Exception:
-            raise APIException(ErrorStatus.GPT_API_ERROR)
+        brand_name = GPTService.infer_brand_name_from_keywords(keyword_list)
 
         # 종목 검색
         logger.debug(f"[ImageSearchService] {brand_name}으로 종목 검색 시작")
