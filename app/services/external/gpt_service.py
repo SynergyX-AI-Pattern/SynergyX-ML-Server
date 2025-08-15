@@ -10,7 +10,8 @@ logger = logging.getLogger(__name__)
 
 
 # GPT 클라이언트 생성
-client = OpenAI(api_key=settings.OPENAI_API_KEY)
+client = OpenAI(api_key=settings.OPENAI_API_KEY.get_secret_value())
+
 
 class GPTService:
     @staticmethod
@@ -18,6 +19,9 @@ class GPTService:
         """
         키워드로 기업명을 추론합니다.
         """
+        if not keywords:
+            return "모름"
+
         prompt = (
             "아래 키워드를 보고 어떤 KOSPI 100 상장 종목과 가장 관련이 있는지 추론해줘.\n"
             "반드시 한국 증시에 상장된 **KOSPI 100 종목명 중 하나**로만 대답해야 해.\n"
