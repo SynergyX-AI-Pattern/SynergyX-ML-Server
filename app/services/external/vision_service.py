@@ -5,11 +5,8 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 
-# 환경 변수 설정
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = settings.GOOGLE_APPLICATION_CREDENTIALS
-
-# Google Cloud Vision API 클라이언트 인스턴스 생성
-client = vision.ImageAnnotatorClient()
+# Google Cloud Vision API 클라이언트 (지연 초기화)
+client: vision.ImageAnnotatorClient | None = None
 
 class VisionService:
     """
@@ -22,13 +19,18 @@ class VisionService:
         """
         이미지에서 키워드를 추출합니다.
         """
+        global client
+        if client is None:
+            os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", settings.GOOGLE_APPLICATION_CREDENTIALS)
+            client = vision.ImageAnnotatorClient()
+
         # 이미지 바이트 데이터를 이미지 객체로 변환
         image = vision.Image(content=image_bytes)
 
         # 딕셔너리 초기화
         result = {"label": [], "text": [], "logo": [], "web": []}
 
-        logger.debug(f"[VisionService] Vision 분석 시작")
+        logger.debug("[VisionService] Vision 분석 시작")
 
         # 라벨
         try:
