@@ -47,7 +47,35 @@ def save_predictions(db: Session, predictions: list[Prediction]) -> None:
         logger.warning("저장할 예측 데이터가 없습니다.")
         return
 
-    db.bulk_save_objects(predictions)
-    db.flush()
-    db.commit()
-    logger.debug(f"[{predictions[0].stock_id}] 예측 결과 {len(predictions)}건 저장 완료")
+    try:
+        upsert_count = 0
+        insert_count = 0
+
+        for p in predictions:
+            existing = db.query(Prediction).filter(
+                Prediction.stock_id == p.stock_id,
+                Prediction.target_date == p.target_date
+            ).first()
+
+            if existing:
+                # UPDATE
+                existing.predicted_close = p.predicted_close
+                existing.predicted_high = p.predicted_high
+                existing.predicted_low = p.predicted_low
+                existing.recommended_sell = p.recommended_sell
+                existing.recommended_buy = p.recommended_buy
+                existing.updated_at = datetime.now(timezone.utc)
+                upsert_count += 1
+                logger.debug(f"[UPSERT] UPDATE → stock_id={p.stock_id}, date={p.target_date}")
+            else:
+                # INSERT
+                db.add(p)
+                insert_count += 1
+                logger.debug(f"[UPSERT] INSERT → stock_id={p.stock_id}, date={p.target_date}")
+
+        db.commit()
+        logger.info(f"[{predictions[0].stock_id}] 예측 저장 완료: INSERT={insert_count}, UPDATE={upsert_count}")
+    except Exception as e:
+        db.rollback()
+        logger.exception(f"[{predictions[0].stock_id}] 예측 저장 실패: {str(e)}")
+        raise
