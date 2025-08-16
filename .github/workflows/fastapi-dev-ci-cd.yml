@@ -30,6 +30,12 @@ jobs:
         env:
           ENV_BASE64: ${{ secrets.FASTAPI_ENV_BASE64 }}
 
+      - name: Decode Vision key
+        run: |
+          echo "$VISION_KEY_JSON_BASE64" | base64 -d > vision-key.json
+        env:
+          VISION_KEY_JSON_BASE64: ${{ secrets.VISION_KEY_JSON_BASE64 }}
+
       - name: Deploy to EC2
         env:
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
@@ -45,6 +51,9 @@ jobs:
 
           # .env 전송
           scp -i private_key.pem -o StrictHostKeyChecking=no .env $EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/fastapi-app/.env
+
+          # Vision key 전송
+          scp -i private_key.pem -o StrictHostKeyChecking=no vision-key.json $EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/fastapi-app/vision-key.json
 
           # 서버 설정 및 재시작
           ssh -i private_key.pem -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_HOST "
