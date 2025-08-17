@@ -17,7 +17,7 @@ router = APIRouter()
     summary="이미지 기반 종목 검색",
     description="""
                 업로드된 이미지로부터 브랜드를 인식하여 종목 정보를 반환합니다.
-                최대 5MB 파일만 업로드 가능합니다.
+                최대 20MB 파일만 업로드 가능합니다.
     """,
     tags=["Stock"]
 )
@@ -26,9 +26,9 @@ async def search_stock_by_image(
         db: Session = Depends(get_db)
 ):
     contents = await image.read()
-    MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
+    MAX_IMAGE_SIZE = 20 * 1024 * 1024  # 20MB
 
-    # 파일 크기 제한(5MB)
+    # 파일 크기 제한
     if len(contents) > MAX_IMAGE_SIZE:
         raise APIException(ErrorStatus.FILE_TOO_LARGE)
 
