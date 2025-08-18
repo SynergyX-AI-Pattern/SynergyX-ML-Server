@@ -32,6 +32,8 @@ class EmotionDiaryService:
                 summary=result["summary"],
                 feedback=result["feedback"]
             )
+        except APIException as e:
+            raise e
         except Exception as e:
             logger.error(f"[EmotionDiaryService] 감정 분석 실패: {e}")
-            raise APIException(ErrorStatus.GPT_API_ERROR)
+            raise APIException(ErrorStatus.GPT_API_ERROR) from e
