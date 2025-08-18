@@ -3,7 +3,7 @@ from sqlalchemy.dialects.postgresql import JSON
 
 from app.models.base_model import BaseTimeModel
 
-class Pattern(BaseTimeModel):
+class EmotionDiary(BaseTimeModel):
     __tablename__ = "emotion_diary"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
