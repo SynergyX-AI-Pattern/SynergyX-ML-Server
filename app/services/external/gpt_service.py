@@ -45,43 +45,44 @@ class GPTService:
 
     @staticmethod
     def analyze_emotion_diary(content: str) -> dict:
-        prompt = f"""
-           아래는 사용자가 작성한 투자 관련 일기입니다. 이 내용을 기반으로 다음 정보를 추출해주세요:
-           - emotion: 감정을 한국어 단어 리스트로 (예: ["우울", "불안"])
-           - summary: 핵심 요약 (한 문장)
-           - feedback: 투자 관련 조언 (감정 위로 및 투자 전략 제안)
+        system_prompt = (
+            "당신은 투자 일기의 감정 분석과 조언을 제공하는 어시스턴트입니다. "
+            "다음 형식의 JSON만 반환하세요: "
+            '{"emotion": ["..."], "summary": "...", "feedback": "..."} '
+            "설명, 코드블록, 추가 텍스트는 절대 포함하지 마세요."
+        )
 
-           반드시 아래 포맷의 JSON 형식으로 응답해:
-           {{
-             "emotion": [...],
-             "summary": "...",
-             "feedback": "..."
-           }}
-
-           일기 내용:
-           \"{content}\"
-           """
+        user_prompt = (
+            "아래 일기를 분석해 다음 정보를 추출하세요.\n"
+            "- emotion: 감정을 한국어 단어 리스트로 (예: [\"우울\", \"불안\"])\n"
+            "- summary: 핵심 요약 (한 문장)\n"
+            "- feedback: 투자 관련 조언 (감정 위로 및 투자 전략 제안)\n\n"
+            f"일기 내용:\n{content}"
+        )
 
         try:
             response = client.chat.completions.create(
                 model="gpt-4o",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.7,
+                response_format={"type": "json_object"},
+                max_tokens=500,
             )
             message = response.choices[0].message.content.strip()
+            data = json.loads(message)
 
-            # 코드블럭 제거
-            if message.startswith("```json"):
-                message = message[7:]
-            if message.startswith("```"):
-                message = message[3:]
-            if message.endswith("```"):
-                message = message[:-3]
-            return json.loads(message)
+            # 필수 키 존재 및 타입 점검
+            if not isinstance(data, dict) or \
+               "emotion" not in data or "summary" not in data or "feedback" not in data:
+                raise APIException(ErrorStatus.GPT_RESPONSE_PARSE_ERROR)
+            return data
 
         except json.JSONDecodeError as e:
             logger.error(f"[GPTService] JSON 파싱 실패: {e}")
-            raise APIException(ErrorStatus.GPT_RESPONSE_PARSE_ERROR)
+            raise APIException(ErrorStatus.GPT_RESPONSE_PARSE_ERROR) from e
 
         except Exception as e:
             logger.error(f"[GPTService] GPT API 호출 실패: {e}")
