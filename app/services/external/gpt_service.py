@@ -3,6 +3,7 @@ from openai import OpenAI
 
 from app.api_payload.code.error_status import ErrorStatus
 from app.core.config import settings
+import json
 
 from app.exceptions.base import APIException
 
@@ -38,6 +39,50 @@ class GPTService:
                 temperature=0.2
             )
             return response.choices[0].message.content.strip()
+        except Exception as e:
+            logger.error(f"[GPTService] GPT API 호출 실패: {e}")
+            raise APIException(ErrorStatus.GPT_API_ERROR) from e
+
+    @staticmethod
+    def analyze_emotion_diary(content: str) -> dict:
+        prompt = f"""
+           아래는 사용자가 작성한 투자 관련 일기입니다. 이 내용을 기반으로 다음 정보를 추출해주세요:
+           - emotion: 감정을 한국어 단어 리스트로 (예: ["우울", "불안"])
+           - summary: 핵심 요약 (한 문장)
+           - feedback: 투자 관련 조언 (감정 위로 및 투자 전략 제안)
+
+           반드시 아래 포맷의 JSON 형식으로 응답해:
+           {{
+             "emotion": [...],
+             "summary": "...",
+             "feedback": "..."
+           }}
+
+           일기 내용:
+           \"{content}\"
+           """
+
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7
+            )
+            message = response.choices[0].message.content.strip()
+
+            # 코드블럭 제거
+            if message.startswith("```json"):
+                message = message[7:]
+            if message.startswith("```"):
+                message = message[3:]
+            if message.endswith("```"):
+                message = message[:-3]
+            return json.loads(message)
+
+        except json.JSONDecodeError as e:
+            logger.error(f"[GPTService] JSON 파싱 실패: {e}")
+            raise APIException(ErrorStatus.GPT_RESPONSE_PARSE_ERROR)
+
         except Exception as e:
             logger.error(f"[GPTService] GPT API 호출 실패: {e}")
             raise APIException(ErrorStatus.GPT_API_ERROR)
