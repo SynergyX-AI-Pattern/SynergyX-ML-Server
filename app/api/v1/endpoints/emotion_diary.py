@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from app.schemas.base_response import BaseResponse
 from app.core.response import success_response
-from app.api_payload.code.status_code import SuccessStatus
+from app.api_payload.code.success_status import SuccessStatus
 from app.schemas.emotion_diary import EmotionDiaryRequest, EmotionDiaryResponse
 from app.services.emotion_diary_service import EmotionDiaryService
 
