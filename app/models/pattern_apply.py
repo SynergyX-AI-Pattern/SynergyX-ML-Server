@@ -11,7 +11,7 @@ class PatternApply(BaseTimeModel):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
 
-    pattern_id = Column(BigInteger, ForeignKey("pattern.id"), nullable=False)
+    pattern_id = Column(BigInteger, ForeignKey("pattern.id", ondelete="CASCADE"), nullable=False)
 
     stock_id = Column(BigInteger, ForeignKey("stock.id"), nullable=False)
 
@@ -23,4 +23,4 @@ class PatternApply(BaseTimeModel):
     # 관계 설정
     pattern = relationship("Pattern", back_populates="pattern_applies")
     stock = relationship("Stock", back_populates="pattern_applies")
-    detection_results = relationship("PatternDetectionLog", back_populates="pattern_apply")
+    detection_results = relationship("PatternDetectionLog", back_populates="pattern_apply", cascade="all, delete-orphan", passive_deletes=True)

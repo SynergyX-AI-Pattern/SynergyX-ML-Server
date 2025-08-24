@@ -8,7 +8,7 @@ class PatternDetectionLog(BaseTimeModel):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
 
-    pattern_apply_id = Column(BigInteger, ForeignKey("pattern_apply.id"), nullable=False)
+    pattern_apply_id = Column(BigInteger, ForeignKey("pattern_apply.id", ondelete="CASCADE"), nullable=False)
 
     detected_at = Column(DateTime, nullable=False)
 
