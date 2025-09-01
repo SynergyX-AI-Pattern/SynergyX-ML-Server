@@ -1,5 +1,6 @@
+from typing import Optional
 from pydantic import BaseModel
-from datetime import date
+from datetime import date, datetime
 
 class BacktestRequest(BaseModel):
     startDate: date
@@ -10,6 +11,19 @@ class BacktestRequest(BaseModel):
             "example": {
                 "startDate": "2025-06-13",
                 "endDate": "2025-06-26"
+            }
+        }
+    }
+
+class HighlightRange(BaseModel):
+    fromDate: datetime
+    toDate: datetime
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "fromDate": "2024-02-01T09:00:00",
+                "toDate": "2024-03-15T15:00:00"
             }
         }
     }
@@ -25,6 +39,7 @@ class BacktestResponse(BaseModel):
     totalReturn: float
     lastMatchedDate: date
     lastMatchedReturn: float
+    highlightRange: Optional[HighlightRange] = None
 
     model_config = {
         "json_schema_extra": {
@@ -38,7 +53,11 @@ class BacktestResponse(BaseModel):
                 "minReturnDate": "2024-02-10",
                 "totalReturn": 88.3,
                 "lastMatchedDate": "2024-04-20",
-                "lastMatchedReturn": 9.3
+                "lastMatchedReturn": 9.3,
+                "highlightRange": {
+                    "fromDate": "2024-02-01T09:00:00",
+                    "toDate": "2024-03-15T15:00:00"
+                }
             }
         }
     }
