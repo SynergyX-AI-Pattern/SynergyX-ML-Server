@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.crud.stock import get_stock_by_id
 from app.crud.pattern import get_pattern_by_id
 from app.crud.stock_timeseries import get_stock_timeseries_by_unit
-from app.schemas.backtest import BacktestResponse, BacktestRequest
+from app.schemas.backtest import BacktestResponse, BacktestRequest, HighlightRange
 from app.exceptions.base import APIException
 from app.api_payload.code.status_code import ErrorStatus
 from app.utils.timeseries_calculator import (
@@ -110,7 +110,7 @@ class BacktestService:
         unit: str,
         value: int,
         pat_len: int
-    ) -> List[Tuple[datetime, float]]:
+    ) -> List[Tuple[datetime, float, datetime, datetime]]:
         """
         각 매칭 구간의 수익률 계산합니다.
 
@@ -122,7 +122,7 @@ class BacktestService:
             pat_len: 패턴 길이
 
         Returns:
-            (진입 시점, 수익률) 리스트
+            (진입 시점, 수익률, 구간 시작 지점, 구간 종료 지점) 리스트
         """
         returns = []
 
@@ -150,18 +150,27 @@ class BacktestService:
             # 범위 초과 시 마지막 종가로 설정
             if pos >= len(closes):
                 pos = len(closes) - 1
+
             # 이전 시점이 더 가까우면 뒤로 이동
             elif pos > 0 and (timestamps[pos] - tgt) > (tgt - timestamps[pos - 1]):
                 pos -= 1
+
             # 진입가, 청산가 활용하여 수익률 계산
             entry_p, exit_p = closes[entry_i], closes[pos]
-            # 수익률
-            returns.append((entry_time, (exit_p - entry_p) / entry_p * 100))
+            ret = (exit_p - entry_p) / entry_p * 100
+
+            # 매칭 구간 저장
+            match_start = timestamps[idx]
+            match_end = timestamps[entry_i]
+
+            # 수익률 포함 결과 매칭 구간 저장
+            returns.append((entry_time, ret, match_start, match_end))
+
         return returns
 
     @staticmethod
     def _aggregate_results(
-        returns: List[Tuple[datetime, float]],
+        returns: List[Tuple[datetime, float, datetime, datetime]],
         start_date: date,
         match_count: int
     ) -> BacktestResponse:
@@ -169,7 +178,7 @@ class BacktestService:
         최종 응답을 반환합니다.
 
         Parameters:
-            returns: (진입 시점, 수익률) 리스트
+            returns: (진입 시점, 수익률, 구간 시작 지점, 구간 종료 지점) 리스트
             start_date : 시작 날짜
             match_count: 매칭된 구간 수
 
@@ -187,20 +196,27 @@ class BacktestService:
                 minReturnDate=start_date,
                 totalReturn=0.0,
                 lastMatchedDate=start_date,
-                lastMatchedReturn=0.0
+                lastMatchedReturn=0.0,
+                highlightRange=None
             )
-        dates, vals = zip(*returns)
+        dates, vals, match_starts, match_ends = zip(*returns)
         wins = [v for v in vals if v > 0]
+
+        max_idx = vals.index(max(vals))
 
         return BacktestResponse(
             matchedCount=match_count,
             winRate=len(wins)/len(vals) * 100,
             averageReturn=sum(vals)/len(vals),
             maxReturn=max(vals),
-            maxReturnDate=dates[vals.index(max(vals))].date(),
+            maxReturnDate=dates[max_idx].date(),
             minReturn=min(vals),
             minReturnDate=dates[vals.index(min(vals))].date(),
             totalReturn=sum(vals),
             lastMatchedDate=dates[-1].date(),
-            lastMatchedReturn=vals[-1]
+            lastMatchedReturn=vals[-1],
+            highlightRange=HighlightRange(
+                fromDate=match_starts[max_idx].isoformat(),
+                toDate=match_ends[max_idx].isoformat()
+            )
         )
