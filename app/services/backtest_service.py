@@ -10,7 +10,7 @@ from app.crud.pattern import get_pattern_by_id
 from app.crud.stock_timeseries import get_stock_timeseries_by_unit
 from app.schemas.backtest import BacktestResponse, BacktestRequest, HighlightRange
 from app.exceptions.base import APIException
-from app.api_payload.code.status_code import ErrorStatus
+from app.api_payload.code.error_status import ErrorStatus
 from app.utils.timeseries_calculator import (
     validate_unit,
     find_match_indices,
