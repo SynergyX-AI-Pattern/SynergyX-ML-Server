@@ -109,7 +109,9 @@ class BacktestService:
             df.set_index("timestamp", inplace=True)
 
             # 1시간 단위로 리샘플링
-            df_resampled = df.resample("1h").last().dropna()
+            df_resampled = df.resample("1H").last().dropna()
+            if df_resampled.empty:
+                raise APIException(ErrorStatus.NO_RESAMPLED_DATA)
 
             timestamps = df_resampled.index.to_list()
             closes = df_resampled["close"].to_list()
