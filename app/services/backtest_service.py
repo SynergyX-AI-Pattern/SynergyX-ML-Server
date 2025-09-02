@@ -2,13 +2,15 @@ import logging
 from bisect import bisect_left
 from datetime import datetime, date, timedelta, time
 from typing import List, Tuple
+
+import pandas as pd
 from sqlalchemy.orm import Session
 from app.crud.stock import get_stock_by_id
 from app.crud.pattern import get_pattern_by_id
 from app.crud.stock_timeseries import get_stock_timeseries_by_unit
 from app.schemas.backtest import BacktestResponse, BacktestRequest, HighlightRange
 from app.exceptions.base import APIException
-from app.api_payload.code.status_code import ErrorStatus
+from app.api_payload.code.error_status import ErrorStatus
 from app.utils.timeseries_calculator import (
     validate_unit,
     find_match_indices,
@@ -88,19 +90,49 @@ class BacktestService:
         start_datetime = datetime.combine(start_date, time.min)
         end_datetime = datetime.combine(end_date, time.max)
 
-        rows = get_stock_timeseries_by_unit(
-            db=db,
-            stock_id=stock_id,
-            start_datetime=start_datetime,
-            end_datetime=end_datetime,
-            unit=unit)
+        # 단위가 HOUR인 경우
+        if unit == "HOUR":
+            # 15분봉 데이터 조회
+            rows = get_stock_timeseries_by_unit(
+                db=db,
+                stock_id=stock_id,
+                start_datetime=start_datetime,
+                end_datetime=end_datetime,
+                unit="MINUTE"
+            )
 
-        if not rows:
-            raise APIException(ErrorStatus.STOCK_OHLCV_NOT_FOUND)
+            if not rows:
+                raise APIException(ErrorStatus.STOCK_OHLCV_NOT_FOUND)
 
-        # (timestamp, close) 형태로 분리 후 리스트 반환
-        timestamps, closes = zip(*rows)
-        return list(timestamps), list(closes)
+            # DataFrame 변환
+            df = pd.DataFrame(rows, columns=["timestamp", "close"])
+            df.set_index("timestamp", inplace=True)
+
+            # 1시간 단위로 리샘플링
+            df_resampled = df.resample("1H").last().dropna()
+            if df_resampled.empty:
+                raise APIException(ErrorStatus.NO_RESAMPLED_DATA)
+
+            timestamps = df_resampled.index.to_list()
+            closes = df_resampled["close"].to_list()
+            return timestamps, closes
+
+        # 단위가 DAY인 경우
+        else:
+            rows = get_stock_timeseries_by_unit(
+                db=db,
+                stock_id=stock_id,
+                start_datetime=start_datetime,
+                end_datetime=end_datetime,
+                unit=unit
+            )
+
+            if not rows:
+                raise APIException(ErrorStatus.STOCK_OHLCV_NOT_FOUND)
+
+            # (timestamp, close) 형태로 분리 후 리스트 반환
+            timestamps, closes = zip(*rows)
+            return list(timestamps), list(closes)
 
     @staticmethod
     def _calculate_returns(
