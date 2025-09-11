@@ -29,6 +29,7 @@ async def search_stock_by_image(
     MAX_IMAGE_SIZE = 20 * 1024 * 1024  # 20MB
 
     # 파일 크기 제한(20MB)
+
     if len(contents) > MAX_IMAGE_SIZE:
         raise APIException(ErrorStatus.FILE_TOO_LARGE)
 
