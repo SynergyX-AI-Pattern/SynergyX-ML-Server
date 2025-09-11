@@ -1,9 +1,7 @@
-import logging
+import logging, re
 from sqlalchemy.orm import Session
 from app.crud.stock import get_stock_by_name
-from app.exceptions.base import APIException
-from app.api_payload.code.error_status import ErrorStatus
-from app.schemas.image_search import ImageSearchResponse
+from app.schemas.image_search import ImageSearchResponse, StockStatus
 from app.services.external.gpt_service import GPTService
 from app.services.external.vision_service import VisionService
 
@@ -26,14 +24,14 @@ class ImageSearchService:
         brand_name = GPTService.infer_brand_name_from_keywords(keyword_list)
 
         # 비상장 prefix 처리
-        if brand_name.startswith("비상장:") or brand_name.startswith("비상장 "):
-            clean_name = brand_name.replace("비상장:", "").replace("[비상장] ", "").strip()
+        clean_name = re.sub(r'^\s*\[?비상장\]?\s*:?\s*', '', brand_name).strip()
+        if clean_name != brand_name:
             logger.info(f"[ImageSearchService] 비상장 기업 : {clean_name}")
             return ImageSearchResponse(
                 id=None,
                 name=clean_name,
                 imageUrl=None,
-                status="UNLISTED"
+                status=StockStatus.UNLISTED
             )
 
         elif brand_name == "모름":
@@ -42,7 +40,7 @@ class ImageSearchService:
                 id=None,
                 name="모름",
                 imageUrl=None,
-                status="UNKNOWN"
+                status=StockStatus.UNKNOWN
             )
 
         else:
@@ -57,7 +55,7 @@ class ImageSearchService:
                     id=stock.id,
                     name=stock.name,
                     imageUrl=stock.image_url,
-                    status="LISTED"
+                    status=StockStatus.LISTED
                 )
 
             # KOSPI100 미해당 상장자
@@ -67,5 +65,5 @@ class ImageSearchService:
                     id=None,
                     name=brand_name,
                     imageUrl=None,
-                    status="LISTED_OUTSIDE"
+                    status=StockStatus.LISTED_OUTSIDE
                 )
