@@ -1,8 +1,12 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
+from sqlalchemy import func
 from app.db.session import SessionLocal
 from app.models.stock import Stock
+from app.models.stock_detail import StockDetail
+from app.models.prediction import Prediction
 import time
+import datetime
 from app.crud.prediction import create_prediction_objects, save_predictions
 from app.services.prediction_service import PredictionService
 import logging
@@ -122,3 +126,126 @@ class BatchService:
                     logger.exception(f"[{stock_id}] 처리 중 예외 발생: {str(e)}")
 
         logger.info("전체 배치 완료")
+
+    @staticmethod
+    def update_ai_avg_increase_and_rank(base_date: datetime.date | None = None):
+        """
+        종목별 예측값 기반 실제 존재하는 예측일 기준 15일 평균 상승률 계산 후 stock_detail 업데이트
+        :param base_date: 기준일 (None이면 오늘 날짜 사용)
+        :return: None
+        """
+        db = SessionLocal()
+        try:
+            today = base_date or datetime.date.today()
+            logger.info(f"[BatchService] 평균 상승률 계산 시작 (기준일: {today})")
+
+            # --- 예측 데이터 존재 여부 확인 ---
+            total_preds = db.query(Prediction).count()
+            future_preds = db.query(Prediction).filter(Prediction.target_date > today).count()
+            logger.info(f"[BatchService] Prediction 전체: {total_preds}건 / 기준일 이후: {future_preds}건")
+
+            if future_preds == 0:
+                logger.warning(f"[BatchService] 기준일({today}) 이후 예측 데이터가 없습니다.")
+                return
+
+            # --- 첫 번째 예측일 구하기 ---
+            first_date_subq = (
+                db.query(
+                    Prediction.stock_id,
+                    func.min(Prediction.target_date).label("first_target_date")
+                )
+                .filter(Prediction.target_date > today)
+                .group_by(Prediction.stock_id)
+                .subquery()
+            )
+            logger.debug(f"[BatchService] first_date_subq 생성 완료")
+
+            # --- 첫 예측일의 예측 종가 구하기 ---
+            subquery_first_price = (
+                db.query(
+                    Prediction.stock_id,
+                    Prediction.predicted_close.label("first_predicted_close")
+                )
+                .join(
+                    first_date_subq,
+                    (Prediction.stock_id == first_date_subq.c.stock_id)
+                    & (Prediction.target_date == first_date_subq.c.first_target_date)
+                )
+                .subquery()
+            )
+            first_price_count = db.query(subquery_first_price).count()
+            logger.info(f"[BatchService] 첫 예측일 종가 매핑 완료 ({first_price_count}건)")
+
+            # --- 평균 상승률 계산 ---
+            results = (
+                db.query(
+                    Prediction.stock_id,
+                    func.avg(
+                        (Prediction.predicted_close - subquery_first_price.c.first_predicted_close)
+                        / func.nullif(subquery_first_price.c.first_predicted_close, 0.0)
+                    ).label("avg_increase")
+                )
+                .join(subquery_first_price, Prediction.stock_id == subquery_first_price.c.stock_id)
+                .filter(Prediction.target_date > today)
+                .group_by(Prediction.stock_id)
+                .all()
+            )
+
+            logger.info(f"[BatchService] 평균 상승률 계산 결과: {len(results)}건")
+
+            if not results:
+                logger.warning("[BatchService] 평균 상승률 계산 결과 없음 (JOIN 또는 데이터 매칭 문제 가능)")
+                return
+
+            # --- 상위 3개 샘플 출력 ---
+            sample_logs = [
+                f"stock_id={r.stock_id}, avg_increase={round((r.avg_increase or 0) * 100, 2)}%"
+                for r in results[:3]
+            ]
+            logger.debug(f"[BatchService] 계산 결과 샘플: {sample_logs}")
+
+            # --- 평균 상승률 내림차순 정렬 및 랭킹 부여 ---
+            sorted_results = sorted(results, key=lambda r: r.avg_increase or 0, reverse=True)
+
+            for rank, row in enumerate(sorted_results, start=1):
+                db.query(StockDetail).filter(StockDetail.stock_id == row.stock_id).update(
+                    {
+                        StockDetail.ai_avg_increase: row.avg_increase,
+                        StockDetail.ai_rank: rank,
+                        StockDetail.updated_at: datetime.datetime.utcnow(),
+                    }
+                )
+                if rank <= 3:  # 상위 3개만 출력
+                    logger.debug(
+                        f"[BatchService] UPDATE → stock_id={row.stock_id}, "
+                        f"avg_increase={row.avg_increase}, rank={rank}"
+                    )
+
+            db.commit()
+            logger.info(f"[BatchService] 평균 상승률 및 랭킹 갱신 완료 ({len(sorted_results)}개 종목)")
+
+            # 상위 3개 종목 조회
+            top3 = (
+                db.query(Stock.name, StockDetail.ai_avg_increase)
+                .join(StockDetail, Stock.id == StockDetail.stock_id)
+                .order_by(StockDetail.ai_rank.asc())
+                .limit(3)
+                .all()
+            )
+
+            # 디스코드 알림용 리스트 반환
+            top3_info = [
+                {"name": name, "increase": round((increase or 0) * 100, 2)}
+                for name, increase in top3
+            ]
+
+            return top3_info
+
+        except Exception as e:
+            db.rollback()
+            logger.exception(f"[BatchService] 평균 상승률 계산 중 오류 발생: {e}")
+            raise
+
+        finally:
+            db.close()
+            logger.debug("[BatchService] 세션 종료 완료")

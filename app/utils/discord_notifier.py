@@ -28,7 +28,8 @@ async def notify_discord_async(
         fail_count: int,
         duration: float,
         failed_symbols: list[str] = None,
-        mention_role_id: str = None
+        mention_role_id: str = None,
+        top3_info: list[dict] = None,
 ) -> None:
     """
     배치 예측 결과를 디스코드로 전송하는 비동기 함수
@@ -59,6 +60,13 @@ async def notify_discord_async(
     if fail_count > 0 and failed_symbols:
         symbol_list = ", ".join(failed_symbols)
         content += f"\n- 실패 종목: {symbol_list}"
+
+    # top 3 종목 문자열 생성
+    if top3_info:
+        top3_text = "\n".join(
+            [f"{i + 1}위: {item['name']} (+{item['increase']}%)" for i, item in enumerate(top3_info)]
+        )
+        content += f"\n\n🔥 **Top 3**\n{top3_text}"
 
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:

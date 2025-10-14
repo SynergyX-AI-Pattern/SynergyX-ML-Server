@@ -35,6 +35,9 @@ def start_batch_scheduler():
             cooldown_sec=cooldown_sec
         )
 
+        # 평균 상승률, 랭크 계산
+        top3_info = BatchService.update_ai_avg_increase_and_rank()
+
         duration = time.time() - start_time
         logger.info(
             f"[Scheduler] 배치 예측 완료 - 성공: {success_count}, 실패: {fail_count}, 소요: {duration:.2f}s"
@@ -46,7 +49,7 @@ def start_batch_scheduler():
             import threading
             def run_notification():
                 asyncio.run(
-                    notify_discord_async(success_count, fail_count, duration, failed_symbols, 1404342496221462539))
+                    notify_discord_async(success_count, fail_count, duration, failed_symbols, 1404342496221462539, top3_info=top3_info,))
 
             notification_thread = threading.Thread(target=run_notification)
             notification_thread.start()
