@@ -10,4 +10,5 @@ def setup_logging():
         level=LOG_LEVEL,
         format=LOG_FORMAT,
         stream=sys.stdout,
+        force=True,
     )
