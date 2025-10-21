@@ -187,9 +187,22 @@ class BacktestService:
             elif pos > 0 and (timestamps[pos] - tgt) > (tgt - timestamps[pos - 1]):
                 pos -= 1
 
-            # 진입가, 청산가 활용하여 수익률 계산
-            entry_p, exit_p = closes[entry_i], closes[pos]
-            ret = (exit_p - entry_p) / entry_p * 100
+            # 진입가
+            entry_p = closes[entry_i]
+
+            # 평균가
+            segment_prices = closes[entry_i:pos+1]
+            if len(segment_prices) < 2:
+                continue
+            avg_price = sum(segment_prices) / len(segment_prices)
+
+            # 청산가
+            exit_p = segment_prices[-1]
+
+            # 하이브리드 수익률 계산 (진입가, 평균가, 청산가 활용)
+            ret_avg = (avg_price - entry_p) / entry_p * 100
+            ret_exit = (exit_p - entry_p) / entry_p * 100
+            ret = (ret_avg + ret_exit) / 2
 
             # 매칭 구간 저장
             match_start = timestamps[idx]
