@@ -53,7 +53,13 @@ class BacktestService:
         )
 
         # dtw 로직
-        idxes, _ = find_match_indices(pattern_obj.points, closes, pattern_obj.tolerance)
+        idxes, distances = find_match_indices(pattern_obj.points, closes, pattern_obj.tolerance)
+
+        # 유사도 계산 (백테스팅 평가 지표)
+        similarities = [BacktestService._convert_distance_to_similarity(d) for d in distances]
+        if similarities:
+            avg_sim = sum(similarities) / len(similarities)
+            logger.info(f"[Backtest] 평균 유사도: {avg_sim:.3f}, 매칭 개수: {len(similarities)}")
 
         # 수익률 계산
         returns = BacktestService._calculate_returns(idxes, closes, timestamps, unit, value, len(pattern_obj.points))
@@ -133,6 +139,14 @@ class BacktestService:
             # (timestamp, close) 형태로 분리 후 리스트 반환
             timestamps, closes = zip(*rows)
             return list(timestamps), list(closes)
+
+    @staticmethod
+    def _convert_distance_to_similarity(distance: float) -> float:
+        """
+        DTW 거리값을 0~1 사이 유사도로 변환합니다.
+        - formula: similarity = 1 / (1 + distance)
+        """
+        return round(1 / (1 + distance), 4)
 
     @staticmethod
     def _calculate_returns(
