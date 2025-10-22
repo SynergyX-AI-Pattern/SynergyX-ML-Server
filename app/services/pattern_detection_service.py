@@ -120,7 +120,7 @@ class PatternDetectionService:
         current_price = closes[-1]
 
         # 수익률 계산
-        rate_of_return = ((current_price - entry_price) / entry_price) * 100
+        rate_of_return = round(((current_price - entry_price) / entry_price) * 100, 2)
 
         if min_valid_return is not None and rate_of_return < min_valid_return:
             return None
