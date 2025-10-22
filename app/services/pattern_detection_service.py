@@ -33,6 +33,9 @@ class PatternDetectionService:
 
         # 감지 대상 패턴 불러오기
         applies = get_applies(db)
+        if not applies:
+            logger.info("[PatternDetection] 감지 대상 없음")
+            return []
 
         # 감지 성공한 패턴
         success_applies = []
