@@ -94,7 +94,8 @@ class PatternDetectionService:
             now=now
         )
 
-        if not closes or not timestamps:
+        # 데이터 유효성 검증
+        if not closes or not timestamps or len(closes) < len(pattern) * 2:
             return None
 
         # DTW 매칭
