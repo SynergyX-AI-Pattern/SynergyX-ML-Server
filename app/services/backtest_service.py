@@ -141,6 +141,22 @@ class BacktestService:
             return list(timestamps), list(closes)
 
     @staticmethod
+    def _preprocess_series(
+            closes: List[float],
+            window: int = 5
+    ) -> List[float]:
+        """
+        노이즈를 제거하고 정규화 과정을 진행시킵니다.
+        """
+
+        # 노이즈 제거
+        series = pd.Series(closes).rolling(window=window, center=True).mean().bfill().ffill()
+
+        # 정규화
+        normed = (series - series.mean()) / (series.std() + 1e-8)
+        return normed.to_list()
+
+    @staticmethod
     def _convert_distance_to_similarity(distance: float) -> float:
         """
         DTW 거리값을 0~1 사이 유사도로 변환합니다.
