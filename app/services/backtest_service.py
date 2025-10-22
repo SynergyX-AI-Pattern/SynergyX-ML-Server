@@ -53,7 +53,13 @@ class BacktestService:
         )
 
         # dtw 로직
-        idxes, _ = find_match_indices(pattern_obj.points, closes, pattern_obj.tolerance)
+        idxes, distances = find_match_indices(pattern_obj.points, closes, pattern_obj.tolerance)
+
+        # 유사도 계산 (백테스팅 평가 지표)
+        similarities = [BacktestService._convert_distance_to_similarity(d) for d in distances]
+        if similarities:
+            avg_sim = sum(similarities) / len(similarities)
+            logger.info(f"[Backtest] 평균 유사도: {avg_sim:.3f}, 매칭 개수: {len(similarities)}")
 
         # 수익률 계산
         returns = BacktestService._calculate_returns(idxes, closes, timestamps, unit, value, len(pattern_obj.points))
@@ -130,9 +136,38 @@ class BacktestService:
             if not rows:
                 raise APIException(ErrorStatus.STOCK_OHLCV_NOT_FOUND)
 
-            # (timestamp, close) 형태로 분리 후 리스트 반환
+            # (timestamp, close) 형태로 분리
             timestamps, closes = zip(*rows)
+
+            # 노이즈 제거
+            closes = BacktestService._preprocess_series(closes)
+
+            # 리스트 반환
             return list(timestamps), list(closes)
+
+    @staticmethod
+    def _preprocess_series(
+            closes: List[float],
+            window: int = 5
+    ) -> List[float]:
+        """
+        노이즈를 제거하고 정규화 과정을 진행시킵니다.
+        """
+
+        # 노이즈 제거
+        series = pd.Series(closes).rolling(window=window, center=True).mean().bfill().ffill()
+
+        # 정규화
+        normed = (series - series.mean()) / (series.std() + 1e-8)
+        return normed.to_list()
+
+    @staticmethod
+    def _convert_distance_to_similarity(distance: float) -> float:
+        """
+        DTW 거리값을 0~1 사이 유사도로 변환합니다.
+        - formula: similarity = 1 / (1 + distance)
+        """
+        return round(1 / (1 + distance), 4)
 
     @staticmethod
     def _calculate_returns(
@@ -187,9 +222,22 @@ class BacktestService:
             elif pos > 0 and (timestamps[pos] - tgt) > (tgt - timestamps[pos - 1]):
                 pos -= 1
 
-            # 진입가, 청산가 활용하여 수익률 계산
-            entry_p, exit_p = closes[entry_i], closes[pos]
-            ret = (exit_p - entry_p) / entry_p * 100
+            # 진입가
+            entry_p = closes[entry_i]
+
+            # 평균가
+            segment_prices = closes[entry_i:pos+1]
+            if len(segment_prices) < 2:
+                continue
+            avg_price = sum(segment_prices) / len(segment_prices)
+
+            # 청산가
+            exit_p = segment_prices[-1]
+
+            # 하이브리드 수익률 계산 (진입가, 평균가, 청산가 활용)
+            ret_avg = (avg_price - entry_p) / entry_p * 100
+            ret_exit = (exit_p - entry_p) / entry_p * 100
+            ret = (ret_avg + ret_exit) / 2
 
             # 매칭 구간 저장
             match_start = timestamps[idx]
