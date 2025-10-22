@@ -100,7 +100,13 @@ class PatternDetectionService:
                 raise APIException(ErrorStatus.NOT_ENOUGH_DATA) from e
             raise
 
-        # 매칭된 구간 없으면 감지 안 함
+        # 방향성 검증
+        idxes = [
+            i for i in idxes
+            if PatternDetectionService._same_direction(pattern, closes, i)
+        ]
+
+        # 매칭된 구간 없을 시 감지 생략
         if not idxes:
             return None
 
@@ -152,6 +158,25 @@ class PatternDetectionService:
             "unit": unit,
             "value": value
         }
+
+    @staticmethod
+    def _same_direction(
+            pattern: list[float],
+            closes: list[float],
+            idx: int
+    ) -> bool:
+        """
+        패턴과 실제 주가의 방향 (상승, 하락)이 일치하는지 검증합니다.
+        """
+
+        # 패턴의 방향 (기울기)
+        pat_slope = pattern[-1] - pattern[0]
+
+        # 주가의 방향 (기울기)
+        seg_slope = closes[idx + len(pattern) - 1] - closes[idx]
+
+        # 부호가 동일하면 동일 방향
+        return (pat_slope * seg_slope) > 0
 
     @staticmethod
     def _load_price_data(
