@@ -103,8 +103,8 @@ class PatternDetectionService:
         except APIException as e:
             # 데이터 부족 시 감지 생략
             if e.status == ErrorStatus.NOT_ENOUGH_DATA:
-                raise APIException(ErrorStatus.NOT_ENOUGH_DATA) from e
-            raise
+                return None
+            return None
 
         # 방향성 검증
         idxes = [
