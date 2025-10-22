@@ -41,10 +41,14 @@ class PatternDetectionService:
 
         for apply in applies:
             # 각 패턴-종목에 대해 감지 수행
-            result = PatternDetectionService._process_apply(apply, db, now)
-            if result:
-                success_applies.append(apply)
-                results.append(result)
+            try:
+                result = PatternDetectionService._process_apply(apply, db, now)
+                if result:
+                    success_applies.append(apply)
+                    results.append(result)
+            except Exception as e:
+                logger.warning(f"[PatternDetection] {apply.stock.name} 감지 중 오류 발생: {e}")
+                continue
 
         # 감지 성공한 패턴은 알림 설정 해제
         for apply in success_applies:
