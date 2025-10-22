@@ -136,8 +136,13 @@ class BacktestService:
             if not rows:
                 raise APIException(ErrorStatus.STOCK_OHLCV_NOT_FOUND)
 
-            # (timestamp, close) 형태로 분리 후 리스트 반환
+            # (timestamp, close) 형태로 분리
             timestamps, closes = zip(*rows)
+
+            # 노이즈 제거
+            closes = BacktestService._preprocess_series(closes)
+
+            # 리스트 반환
             return list(timestamps), list(closes)
 
     @staticmethod
