@@ -123,6 +123,7 @@ class PatternDetectionService:
         # 수익률 계산
         rate_of_return = round(((current_price - entry_price) / entry_price) * 100, 2)
 
+        # 최소 수익률 조건 미충족 시 감지 생략
         if min_valid_return is not None and rate_of_return < min_valid_return:
             return None
 
