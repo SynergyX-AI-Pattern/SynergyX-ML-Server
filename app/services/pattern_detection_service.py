@@ -1,9 +1,8 @@
 import logging
+import pandas as pd
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple
-
 from sqlalchemy.orm import Session
-
 from app.api_payload.code.error_status import ErrorStatus
 from app.exceptions.base import APIException
 from app.crud.stock_timeseries import get_stock_timeseries_by_unit
@@ -33,16 +32,23 @@ class PatternDetectionService:
 
         # 감지 대상 패턴 불러오기
         applies = get_applies(db)
+        if not applies:
+            logger.info("[PatternDetection] 감지 대상 없음")
+            return []
 
         # 감지 성공한 패턴
         success_applies = []
 
         for apply in applies:
             # 각 패턴-종목에 대해 감지 수행
-            result = PatternDetectionService._process_apply(apply, db, now)
-            if result:
-                success_applies.append(apply)
-                results.append(result)
+            try:
+                result = PatternDetectionService._process_apply(apply, db, now)
+                if result:
+                    success_applies.append(apply)
+                    results.append(result)
+            except Exception as e:
+                logger.warning(f"[PatternDetection] {apply.stock.name} 감지 중 오류 발생: {e}")
+                continue
 
         # 감지 성공한 패턴은 알림 설정 해제
         for apply in success_applies:
@@ -88,7 +94,8 @@ class PatternDetectionService:
             now=now
         )
 
-        if not closes or not timestamps:
+        # 데이터 유효성 검증
+        if not closes or not timestamps or len(closes) < len(pattern) * 2:
             return None
 
         # DTW 매칭
@@ -97,10 +104,16 @@ class PatternDetectionService:
         except APIException as e:
             # 데이터 부족 시 감지 생략
             if e.status == ErrorStatus.NOT_ENOUGH_DATA:
-                raise APIException(ErrorStatus.NOT_ENOUGH_DATA) from e
-            raise
+                return None
+            return None
 
-        # 매칭된 구간 없으면 감지 안 함
+        # 방향성 검증
+        idxes = [
+            i for i in idxes
+            if PatternDetectionService._same_direction(pattern, closes, i)
+        ]
+
+        # 매칭된 구간 없을 시 감지 생략
         if not idxes:
             return None
 
@@ -108,8 +121,9 @@ class PatternDetectionService:
         current_price = closes[-1]
 
         # 수익률 계산
-        rate_of_return = ((current_price - entry_price) / entry_price) * 100
+        rate_of_return = round(((current_price - entry_price) / entry_price) * 100, 2)
 
+        # 최소 수익률 조건 미충족 시 감지 생략
         if min_valid_return is not None and rate_of_return < min_valid_return:
             return None
 
@@ -154,6 +168,25 @@ class PatternDetectionService:
         }
 
     @staticmethod
+    def _same_direction(
+            pattern: list[float],
+            closes: list[float],
+            idx: int
+    ) -> bool:
+        """
+        패턴과 실제 주가의 방향 (상승, 하락)이 일치하는지 검증합니다.
+        """
+
+        # 패턴의 방향 (기울기)
+        pat_slope = pattern[-1] - pattern[0]
+
+        # 주가의 방향 (기울기)
+        seg_slope = closes[idx + len(pattern) - 1] - closes[idx]
+
+        # 부호가 동일하면 동일 방향
+        return (pat_slope * seg_slope) > 0
+
+    @staticmethod
     def _load_price_data(
             db: Session,
             stock_id: int,
@@ -162,7 +195,8 @@ class PatternDetectionService:
             now: datetime
     ) -> Tuple[list[float], list[datetime]]:
         """
-        진입 시점(entry_at)부터 현재까지의 가격 데이터를 조회합니다.
+        진입 시점(entry_at)부터 현재까지의 가격 데이터를 조회하고,
+        노이즈를 제거합니다.
 
         Returns:
             - 종가 리스트 (closes)
@@ -180,4 +214,31 @@ class PatternDetectionService:
             raise APIException(ErrorStatus.STOCK_OHLCV_NOT_FOUND)
 
         timestamps, closes = zip(*rows)
+
+        # 데이터 충분 시 smoothing 기법 사용
+        if len(closes) > 3:
+            closes = PatternDetectionService._smooth_series(closes, window=3)
         return list(closes), list(timestamps)
+
+    @staticmethod
+    def _smooth_series(
+            closes: list[float],
+            window: int = 3
+    ) -> list[float]:
+        """
+        이동 평균선을 사용하여 노이즈를 제거합니다.
+
+        Parameters:
+            closes: 종가 리스트
+            window: 구간 길이 (기본값: 3)
+
+        Returns:
+            노이즈가 제거된 종가 리스트
+        """
+
+        # 기존 종가 리스트 변환
+        series = pd.Series(closes)
+
+        # 이동 평균 계산 및 보정
+        smoothed = series.rolling(window=window, center=True).mean().bfill().ffill()
+        return smoothed.tolist()
