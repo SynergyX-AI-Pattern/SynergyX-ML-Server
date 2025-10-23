@@ -195,7 +195,8 @@ class PatternDetectionService:
             now: datetime
     ) -> Tuple[list[float], list[datetime]]:
         """
-        진입 시점(entry_at)부터 현재까지의 가격 데이터를 조회합니다.
+        진입 시점(entry_at)부터 현재까지의 가격 데이터를 조회하고,
+        노이즈를 제거합니다.
 
         Returns:
             - 종가 리스트 (closes)
@@ -213,4 +214,31 @@ class PatternDetectionService:
             raise APIException(ErrorStatus.STOCK_OHLCV_NOT_FOUND)
 
         timestamps, closes = zip(*rows)
+
+        # 데이터 충분 시 smoothing 기법 사용
+        if len(closes) > 3:
+            closes = PatternDetectionService._smooth_series(closes, window=3)
         return list(closes), list(timestamps)
+
+    @staticmethod
+    def _smooth_series(
+            closes: list[float],
+            window: int = 3
+    ) -> list[float]:
+        """
+        이동 평균선을 사용하여 노이즈를 제거합니다.
+
+        Parameters:
+            closes: 종가 리스트
+            window: 구간 길이 (기본값: 3)
+
+        Returns:
+            노이즈가 제거된 종가 리스트
+        """
+
+        # 기존 종가 리스트 변환
+        series = pd.Series(closes)
+
+        # 이동 평균 계산 및 보정
+        smoothed = series.rolling(window=window, center=True).mean().bfill().ffill()
+        return smoothed.tolist()
