@@ -130,7 +130,7 @@ class PatternDetectionService:
         try:
             send_notification_to_spring(
                 user_id=apply.user_id,
-                title=f"[{stock_name}] 패턴 감지!",
+                title=f"📢 패턴 매칭 감지 알림",
                 message=f"{stock_name}에 적용한 {pattern_name} 패턴이 감지되었습니다.",
                 notification_type="PATTERN_DETECTED"
             )
