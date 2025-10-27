@@ -15,6 +15,8 @@ class PatternApply(BaseTimeModel):
 
     stock_id = Column(BigInteger, ForeignKey("stock.id"), nullable=False)
 
+    user_id = Column(BigInteger, nullable=False)
+
     is_alert_enabled = Column(Boolean, nullable=False, default=False)
     entry_at = Column(DateTime, nullable=False)
     entry_price = Column(Float, nullable=False)
