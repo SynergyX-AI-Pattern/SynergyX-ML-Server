@@ -117,7 +117,7 @@ app/
 | **GitHub** | [@eldeoddt](https://github.com/eldeoddt) | [@Soomxn](https://github.com/Soomxn) |
 | **Role** | Team / Backend Lead | Backend / ML Engineer |
 | **Profile** | <img width="120" src="https://avatars.githubusercontent.com/eldeoddt" /> | <img width="120" src="https://avatars.githubusercontent.com/Soomxn" /> |
-| **담당** | <div align="left">• GRU 주가 예측 모델<br/>• FastAPI 서버 구축<br/>• GPT-4o & Vision AI 연동<br/>• 모델 학습 및 배포</div> | <div align="left">• DTW 패턴 감지 로직<br/>• 백테스팅 엔진 구현<br/>• AI 종목 검색<br/>• 감정 투자 일기 분석</div> |
+| **담당** | <div align="left">• GRU 주가 예측 모델<br/>• FastAPI 서버 구축<br/>• 모델 학습 및 배포</div> | <div align="left">• DTW 패턴 감지 로직<br/>• 백테스팅 엔진 구현<br/>• AI 종목 검색<br/>• GPT-4o & Vision AI 연동<br/>• 감정 투자 일기 분석</div> |
 
 ---
 
